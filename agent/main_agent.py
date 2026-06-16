@@ -1,40 +1,87 @@
+"""
+NovaCloud Support Agent - kiến trúc RAG THẬT.
+
+Hỗ trợ 2 phiên bản để chạy Regression Testing:
+  - "v1": baseline yếu (ít context, prompt sơ sài, dễ hallucination).
+  - "v2": tối ưu (nhiều context hơn, prompt grounded + chỉ dẫn từ chối khi
+    không có thông tin trong tài liệu).
+
+Agent dùng:
+  - Retrieval: TfidfRetriever trên corpus NovaCloud (engine/knowledge_base.py).
+  - Generation: model local qua Ollama (engine/llm_client.py).
+"""
 import asyncio
-from typing import List, Dict
+from typing import Dict
+
+from engine import config
+from engine.knowledge_base import get_retriever
+from engine.llm_client import ollama_chat
+
+_V1_SYSTEM = (
+    "Bạn là trợ lý hỗ trợ khách hàng của NovaCloud. Trả lời câu hỏi của người dùng."
+)
+
+_V2_SYSTEM = (
+    "Bạn là trợ lý hỗ trợ khách hàng của NovaCloud. "
+    "CHỈ trả lời dựa trên CONTEXT được cung cấp bên dưới. "
+    "Nếu CONTEXT không chứa thông tin để trả lời, hãy nói rõ: "
+    "'Tôi không tìm thấy thông tin này trong tài liệu.' Tuyệt đối không bịa đặt. "
+    "Trả lời ngắn gọn, chuyên nghiệp, đúng trọng tâm bằng tiếng Việt."
+)
+
 
 class MainAgent:
-    """
-    Đây là Agent mẫu sử dụng kiến trúc RAG đơn giản.
-    Sinh viên nên thay thế phần này bằng Agent thực tế đã phát triển ở các buổi trước.
-    """
-    def __init__(self):
-        self.name = "SupportAgent-v1"
+    def __init__(self, version: str = "v1"):
+        self.version = version
+        self.name = f"NovaSupportAgent-{version}"
+        self.retriever = get_retriever()
+        if version == "v2":
+            self.top_k = 4
+            self.system = _V2_SYSTEM
+            self.temperature = 0.1
+        else:
+            self.top_k = 2
+            self.system = _V1_SYSTEM
+            self.temperature = 0.5
 
     async def query(self, question: str) -> Dict:
-        """
-        Mô phỏng quy trình RAG:
-        1. Retrieval: Tìm kiếm context liên quan.
-        2. Generation: Gọi LLM để sinh câu trả lời.
-        """
-        # Giả lập độ trễ mạng/LLM
-        await asyncio.sleep(0.5) 
-        
-        # Giả lập dữ liệu trả về
+        # 1. Retrieval
+        hits = self.retriever.retrieve(question, top_k=self.top_k)
+        contexts = [p.text for p, _ in hits]
+        retrieved_ids = [p.id for p, _ in hits]
+
+        # 2. Generation
+        context_block = "\n\n".join(f"[{i+1}] {c}" for i, c in enumerate(contexts))
+        user_prompt = f"CONTEXT:\n{context_block}\n\nCÂU HỎI: {question}\n\nTRẢ LỜI:"
+        resp = await ollama_chat(
+            config.AGENT_MODEL, self.system, user_prompt, temperature=self.temperature
+        )
+
         return {
-            "answer": f"Dựa trên tài liệu hệ thống, tôi xin trả lời câu hỏi '{question}' như sau: [Câu trả lời mẫu].",
-            "contexts": [
-                "Đoạn văn bản trích dẫn 1 dùng để trả lời...",
-                "Đoạn văn bản trích dẫn 2 dùng để trả lời..."
-            ],
+            "answer": resp.text.strip(),
+            "contexts": contexts,
+            "retrieved_ids": retrieved_ids,
             "metadata": {
-                "model": "gpt-4o-mini",
-                "tokens_used": 150,
-                "sources": ["policy_handbook.pdf"]
-            }
+                "version": self.version,
+                "model": resp.model,
+                "prompt_tokens": resp.prompt_tokens,
+                "completion_tokens": resp.completion_tokens,
+                "cost": resp.cost,
+            },
         }
 
+
 if __name__ == "__main__":
-    agent = MainAgent()
+    config.setup_utf8()
+
     async def test():
-        resp = await agent.query("Làm thế nào để đổi mật khẩu?")
-        print(resp)
+        for v in ("v1", "v2"):
+            agent = MainAgent(version=v)
+            resp = await agent.query("Làm thế nào để đổi mật khẩu?")
+            print(f"\n=== {agent.name} ===")
+            print("Retrieved:", resp["retrieved_ids"])
+            print("Answer:", resp["answer"][:300])
+            print("Tokens:", resp["metadata"]["prompt_tokens"], "+",
+                  resp["metadata"]["completion_tokens"])
+
     asyncio.run(test())

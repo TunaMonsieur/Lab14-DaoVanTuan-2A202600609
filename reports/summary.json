@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "version": "Agent_V2_Optimized",
+    "total": 58,
+    "timestamp": "2026-06-16 15:37:31",
+    "judge_a": "openai/gpt-oss-120b:free",
+    "judge_b": "kamekichi128/qwen3-4b-instruct-2507:latest"
+  },
+  "metrics": {
+    "avg_score": 3.888,
+    "pass_rate": 0.741,
+    "hit_rate": 0.923,
+    "mrr": 0.904,
+    "agreement_rate": 0.948,
+    "cohen_kappa": 0.501,
+    "avg_safety": 4.905,
+    "conflict_cases": 3
+  },
+  "performance": {
+    "wall_time_sec": 373.15,
+    "avg_latency_sec": 3.137,
+    "total_tokens": 92367
+  },
+  "cost": {
+    "total_usd": 0.0,
+    "agent_usd": 0.0,
+    "judge_usd": 0.0,
+    "cost_per_eval_usd": 0.0,
+    "cloud_calls": 57,
+    "local_calls": 57,
+    "fallback_calls": 0,
+    "cache_hits": 1,
+    "projected_paid_total_usd": 0.004802,
+    "projected_paid_per_eval_usd": 8.28e-05,
+    "projected_paid_per_1000_evals_usd": 0.0828,
+    "cost_reduction_strategy": "Confidence-gated cascade: chấm judge local (free) trước; chỉ gọi judge cloud (đắt) khi điểm local gần ngưỡng pass/fail (2.5-3.5) hoặc case red-team. Với agreement=0.95, ~30-40% case rõ ràng có thể bỏ judge cloud -> giảm >30% chi phí mà gần như không giảm độ chính xác. Cache khử trùng lặp giúp rerun = $0."
+  },
+  "failure_clusters": {
+    "reasoning": 6,
+    "fact": 6,
+    "goal_hijacking": 1,
+    "prompt_injection": 1,
+    "ambiguous": 1
+  },
+  "regression": {
+    "v1_metrics": {
+      "avg_score": 3.578,
+      "pass_rate": 0.724,
+      "hit_rate": 0.923,
+      "mrr": 0.904,
+      "agreement_rate": 0.862,
+      "cohen_kappa": 0.322,
+      "avg_safety": 4.966,
+      "conflict_cases": 8
+    },
+    "v2_metrics": {
+      "avg_score": 3.888,
+      "pass_rate": 0.741,
+      "hit_rate": 0.923,
+      "mrr": 0.904,
+      "agreement_rate": 0.948,
+      "cohen_kappa": 0.501,
+      "avg_safety": 4.905,
+      "conflict_cases": 3
+    },
+    "v1_cost": {
+      "total_usd": 0.0,
+      "agent_usd": 0.0,
+      "judge_usd": 0.0,
+      "cost_per_eval_usd": 0.0,
+      "cloud_calls": 58,
+      "local_calls": 58,
+      "fallback_calls": 0,
+      "cache_hits": 0
+    },
+    "v2_cost": {
+      "total_usd": 0.0,
+      "agent_usd": 0.0,
+      "judge_usd": 0.0,
+      "cost_per_eval_usd": 0.0,
+      "cloud_calls": 57,
+      "local_calls": 57,
+      "fallback_calls": 0,
+      "cache_hits": 1
+    }
+  },
+  "release_decision": {
+    "decision": "APPROVE",
+    "score_delta": 0.31,
+    "hit_rate_delta": 0.0,
+    "cost_ratio": 1.0,
+    "checks": {
+      "quality_no_regression": true,
+      "retrieval_ok": true,
+      "cost_acceptable": true,
+      "safety_ok": true
+    },
+    "thresholds": {
+      "min_score_delta": -0.05,
+      "min_hit_rate": 0.7,
+      "max_cost_ratio": 1.5,
+      "min_safety_score": 3.0
+    }
+  }
+}

@@ -2,5 +2,8 @@
 __pycache__/
 *.pyc
 .DS_Store
-reports/
+# Reports: nộp summary.json & benchmark_results.json, nhưng bỏ cache nội bộ
+reports/*
+!reports/summary.json
+!reports/benchmark_results.json
 data/golden_set.jsonl
